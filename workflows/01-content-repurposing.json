@@ -1,0 +1,277 @@
+{
+  "name": "NTF 04 - Content Repurposing",
+  "tags": [
+    {
+      "name": "NTF-Playbook"
+    }
+  ],
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "sticky-readme",
+      "name": "README",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -520
+      ],
+      "parameters": {
+        "content": "## NTF 04 - Content Repurposing\n\n**Trigger:** Webhook, POST with `{ url: \"https://your-blog-post\" }`\n\n**Flow:**\n1. Receive URL via webhook\n2. Extract full article text via Jina.ai Reader (free)\n3. Claude generates LinkedIn post, newsletter section, tweet thread\n4. All three drafts written to a Google Doc\n5. Slack notification with the doc link\n\n**Setup:**\n- No Jina.ai API key needed (uses public reader endpoint)\n- Connect Google Docs OAuth credential\n- Set your Google Drive folder ID for output docs\n- Edit the Claude prompt voice/tone instructions to match your brand\n- Set your Slack channel ID",
+        "height": 360,
+        "width": 540,
+        "color": 6
+      }
+    },
+    {
+      "id": "webhook-trigger",
+      "name": "Repurpose URL Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "content-repurpose-webhook",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "repurpose",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "extract-url",
+      "name": "Extract URL",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "url",
+              "name": "url",
+              "value": "={{ $json.body.url }}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "jina-fetch",
+      "name": "Fetch Article via Jina.ai",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://r.jina.ai/{{ $json.url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "claude-llm",
+      "name": "Claude - Repurpose Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "model": "claude-sonnet-4-5",
+        "options": {
+          "maxTokens": 2000
+        }
+      },
+      "credentials": {
+        "anthropicApi": {
+          "name": "Anthropic"
+        }
+      }
+    },
+    {
+      "id": "repurpose-chain",
+      "name": "Generate Repurposed Content",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a professional content strategist. Repurpose the article below into three formats.\n\nVOICE INSTRUCTIONS: Direct, professional, no buzzwords, plain English. First person. No em dashes.\n\nReturn a JSON object with these keys:\n- linkedin_post: A LinkedIn post (150-250 words). Hook first line, 3-5 bullet points or short paragraphs, CTA question at end, 5 hashtags at bottom.\n- newsletter_section: A newsletter section (200-300 words). Subheading, intro paragraph, 2-3 key points, link back to the original article.\n- tweet_thread: A tweet thread of 5-7 tweets. Number each tweet (1/, 2/, etc.). First tweet is the hook. Last tweet links to article.\n\nArticle:\n{{ $('Fetch Article via Jina.ai').item.json.data }}\n\nReturn only valid JSON. No markdown fencing."
+      }
+    },
+    {
+      "id": "parse-content",
+      "name": "Parse Repurposed Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.text || '{}';\nlet parsed = {};\ntry {\n  parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());\n} catch(e) {\n  parsed = { linkedin_post: raw, newsletter_section: '', tweet_thread: '' };\n}\nconst url = $('Extract URL').first().json.url;\nreturn [{ json: { ...parsed, source_url: url, created_at: new Date().toISOString() } }];"
+      }
+    },
+    {
+      "id": "create-gdoc",
+      "name": "Create Google Doc",
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        0
+      ],
+      "parameters": {
+        "operation": "create",
+        "title": "=Repurposed Content - {{ $now.format('YYYY-MM-DD') }}",
+        "folderId": "YOUR_GOOGLE_DRIVE_FOLDER_ID",
+        "content": "=REPURPOSED CONTENT\nSource: {{ $json.source_url }}\nGenerated: {{ $json.created_at }}\n\n---\n\nLINKEDIN POST\n\n{{ $json.linkedin_post }}\n\n---\n\nNEWSLETTER SECTION\n\n{{ $json.newsletter_section }}\n\n---\n\nTWEET THREAD\n\n{{ $json.tweet_thread }}"
+      },
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "name": "Google Docs"
+        }
+      }
+    },
+    {
+      "id": "slack-notify",
+      "name": "Slack - Doc Ready",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        1320,
+        0
+      ],
+      "parameters": {
+        "operation": "post",
+        "channel": "YOUR_SLACK_CHANNEL_ID",
+        "text": "=Content repurposed and ready to review.\nSource: {{ $('Extract URL').item.json.url }}\nDoc: {{ $json.id ? 'https://docs.google.com/document/d/' + $json.id : 'check Google Drive' }}"
+      },
+      "credentials": {
+        "slackApi": {
+          "name": "Slack"
+        }
+      }
+    },
+    {
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        160
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ received: true, doc_id: $('Create Google Doc').item.json.id }) }}"
+      }
+    }
+  ],
+  "connections": {
+    "Repurpose URL Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract URL": {
+      "main": [
+        [
+          {
+            "node": "Fetch Article via Jina.ai",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Article via Jina.ai": {
+      "main": [
+        [
+          {
+            "node": "Generate Repurposed Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude - Repurpose Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Repurposed Content",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Repurposed Content": {
+      "main": [
+        [
+          {
+            "node": "Parse Repurposed Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Repurposed Content": {
+      "main": [
+        [
+          {
+            "node": "Create Google Doc",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Google Doc": {
+      "main": [
+        [
+          {
+            "node": "Slack - Doc Ready",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
