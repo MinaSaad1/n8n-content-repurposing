@@ -46,7 +46,7 @@ This is the single biggest design choice in the workflow. See "Why Jina free rea
 
 ### Claude - Repurpose Model (`Anthropic Chat Model` node)
 
-Configures the LM the chain will use. Model is `claude-sonnet-4-5`, max tokens 2000. This node is a config carrier, not part of the data flow; it plugs sideways into the Chain LLM node via the `ai_languageModel` connection.
+Configures the LM the chain will use. Model is `claude-sonnet-4-6`, max tokens 2000. This node is a config carrier, not part of the data flow; it plugs sideways into the Chain LLM node via the `ai_languageModel` connection.
 
 ### Generate Repurposed Content (`Chain LLM` node)
 

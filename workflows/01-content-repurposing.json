@@ -69,7 +69,7 @@
       "id": "jina-fetch",
       "name": "Fetch Article via Jina.ai",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "typeVersion": 4.5,
       "position": [
         440,
         0
@@ -90,13 +90,18 @@
       "id": "claude-llm",
       "name": "Claude - Repurpose Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
-      "typeVersion": 1.3,
+      "typeVersion": 1.5,
       "position": [
         660,
         0
       ],
       "parameters": {
-        "model": "claude-sonnet-4-5",
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-4-6",
+          "cachedResultName": "Claude Sonnet 4.6"
+        },
         "options": {
           "maxTokens": 2000
         }
@@ -147,7 +152,8 @@
         "operation": "create",
         "title": "=Repurposed Content - {{ $now.format('YYYY-MM-DD') }}",
         "folderId": "YOUR_GOOGLE_DRIVE_FOLDER_ID",
-        "content": "=REPURPOSED CONTENT\nSource: {{ $json.source_url }}\nGenerated: {{ $json.created_at }}\n\n---\n\nLINKEDIN POST\n\n{{ $json.linkedin_post }}\n\n---\n\nNEWSLETTER SECTION\n\n{{ $json.newsletter_section }}\n\n---\n\nTWEET THREAD\n\n{{ $json.tweet_thread }}"
+        "driveId": "myDrive",
+        "resource": "document"
       },
       "credentials": {
         "googleDocsOAuth2Api": {
@@ -159,15 +165,21 @@
       "id": "slack-notify",
       "name": "Slack - Doc Ready",
       "type": "n8n-nodes-base.slack",
-      "typeVersion": 2.3,
+      "typeVersion": 2.5,
       "position": [
         1320,
         0
       ],
       "parameters": {
         "operation": "post",
-        "channel": "YOUR_SLACK_CHANNEL_ID",
-        "text": "=Content repurposed and ready to review.\nSource: {{ $('Extract URL').item.json.url }}\nDoc: {{ $json.id ? 'https://docs.google.com/document/d/' + $json.id : 'check Google Drive' }}"
+        "text": "=Content repurposed and ready to review.\nSource: {{ $('Extract URL').item.json.url }}\nDoc: {{ $json.id ? 'https://docs.google.com/document/d/' + $json.id : 'check Google Drive' }}",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "YOUR_SLACK_CHANNEL"
+        },
+        "resource": "message"
       },
       "credentials": {
         "slackApi": {
@@ -187,6 +199,39 @@
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ JSON.stringify({ received: true, doc_id: $('Create Google Doc').item.json.id }) }}"
+      }
+    },
+    {
+      "parameters": {
+        "resource": "document",
+        "operation": "update",
+        "documentURL": "={{ $json.id }}",
+        "simple": true,
+        "actionsUi": {
+          "actionFields": [
+            {
+              "object": "text",
+              "action": "insert",
+              "insertSegment": "body",
+              "locationChoice": "endOfSegmentLocation",
+              "text": "=REPURPOSED CONTENT\nSource: {{ $json.source_url }}\nGenerated: {{ $json.created_at }}\n\n---\n\nLINKEDIN POST\n\n{{ $json.linkedin_post }}\n\n---\n\nNEWSLETTER SECTION\n\n{{ $json.newsletter_section }}\n\n---\n\nTWEET THREAD\n\n{{ $json.tweet_thread }}"
+            }
+          ]
+        },
+        "updateFields": {}
+      },
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        0
+      ],
+      "id": "ntf04-docs-insert",
+      "name": "Insert Doc Content",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "name": "Google Docs"
+        }
       }
     }
   ],
@@ -258,6 +303,17 @@
       ]
     },
     "Create Google Doc": {
+      "main": [
+        [
+          {
+            "node": "Insert Doc Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Doc Content": {
       "main": [
         [
           {
