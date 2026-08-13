@@ -92,8 +92,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
       "typeVersion": 1.5,
       "position": [
-        660,
-        0
+        732,
+        190
       ],
       "parameters": {
         "model": {
@@ -132,7 +132,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        880,
+        1008,
         0
       ],
       "parameters": {
@@ -145,7 +145,7 @@
       "type": "n8n-nodes-base.googleDocs",
       "typeVersion": 2,
       "position": [
-        1100,
+        1228,
         0
       ],
       "parameters": {
@@ -167,7 +167,7 @@
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.5,
       "position": [
-        1320,
+        1668,
         0
       ],
       "parameters": {
@@ -193,7 +193,7 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1320,
+        1668,
         160
       ],
       "parameters": {
@@ -223,7 +223,7 @@
       "type": "n8n-nodes-base.googleDocs",
       "typeVersion": 2,
       "position": [
-        1320,
+        1448,
         0
       ],
       "id": "ntf04-docs-insert",
