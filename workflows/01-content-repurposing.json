@@ -1,8 +1,8 @@
 {
-  "name": "NTF 04 - Content Repurposing",
+  "name": "Content Repurposing",
   "tags": [
     {
-      "name": "NTF-Playbook"
+      "name": "n8n-ai-agents"
     }
   ],
   "settings": {
@@ -19,7 +19,7 @@
         -520
       ],
       "parameters": {
-        "content": "## NTF 04 - Content Repurposing\n\n**Trigger:** Webhook, POST with `{ url: \"https://your-blog-post\" }`\n\n**Flow:**\n1. Receive URL via webhook\n2. Extract full article text via Jina.ai Reader (free)\n3. Claude generates LinkedIn post, newsletter section, tweet thread\n4. All three drafts written to a Google Doc\n5. Slack notification with the doc link\n\n**Setup:**\n- No Jina.ai API key needed (uses public reader endpoint)\n- Connect Google Docs OAuth credential\n- Set your Google Drive folder ID for output docs\n- Edit the Claude prompt voice/tone instructions to match your brand\n- Set your Slack channel ID",
+        "content": "## Content Repurposing\n\n**Trigger:** Webhook, POST with `{ url: \"https://your-blog-post\" }`\n\n**Flow:**\n1. Receive URL via webhook\n2. Extract full article text via Jina.ai Reader (free)\n3. Claude generates LinkedIn post, newsletter section, tweet thread\n4. All three drafts written to a Google Doc\n5. Slack notification with the doc link\n\n**Setup:**\n- No Jina.ai API key needed (uses public reader endpoint)\n- Connect Google Docs OAuth credential\n- Set your Google Drive folder ID for output docs\n- Edit the Claude prompt voice/tone instructions to match your brand\n- Set your Slack channel ID",
         "height": 360,
         "width": 540,
         "color": 6
